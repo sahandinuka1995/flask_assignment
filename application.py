@@ -112,9 +112,13 @@ def payLoan():
         amount = request.form["amount"]
 
         loan = Loan.query.filter_by(username=username).first()
-        loan.isPaid = True
 
-        total = Total.query.filter_by(id=1).first()
-        total.amount = total.amount + int(amount)
+        if loan.amount == int(amount):
+            loan.isPaid = True
+
+            total = Total.query.filter_by(id=1).first()
+            total.amount = total.amount + int(amount)
+        else:
+            return "Payable amount and add amount not match <br/><a href='/pay_loan'>Go Back</a>"
 
     return render_template("payLoan.html")
