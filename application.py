@@ -28,6 +28,7 @@ class Loan(db.Model):
     person1 = db.Column(db.String(80), unique=True, nullable=False)
     person2 = db.Column(db.String(80), unique=True, nullable=False)
     amount = db.Column(db.Integer, unique=True, nullable=False)
+    isPaid = db.Column(db.Boolean, unique=True, nullable=False)
 
 
 db.create_all()
@@ -36,6 +37,13 @@ db.session.commit()
 
 @application.route("/")
 def home():
+    total = Total.query.filter_by(id=1).first()
+
+    if total == None:
+        total = Total(amount=0)
+        db.session.add(total)
+        db.session.commit()
+
     return render_template("index.html")
 
 
@@ -74,20 +82,39 @@ def addUser():
 def requestLoan():
     if request.method == "POST":
         username = request.form["username"]
-        person1 = request.form["person1"]
-        person2 = request.form["person2"]
+        person11 = request.form["person1"]
+        person22 = request.form["person2"]
         amount = request.form["amount"]
 
-        person1 = User.query.filter_by(username=person1).first()
-        person2 = User.query.filter_by(username=person2).first()
+        person1 = User.query.filter_by(username=person11).first()
+        person2 = User.query.filter_by(username=person22).first()
         total = Total.query.filter_by(id=1).first()
 
         if (person1.amount + person2.amount) <= total.amount:
-            print('good')
-        else:
-            print('bad')
+            loan = Loan(username=username, person1=person1.username, person2=person2.username, amount=amount,
+                        isPaid=False)
+            total = Total.query.filter_by(id=1).first()
+            total.amount = total.amount - int(amount)
 
-    # loan = Loan(username=username, person1=person1, person2=person2, amount=amount)
-    # db.session.add(loan)
-    # db.session.commit()
+            db.session.add(loan)
+            db.session.commit()
+
+            return render_template("dashboard.html")
+        else:
+            return render_template("requestLoan.html")
     return render_template("requestLoan.html")
+
+
+@application.route("/pay_loan", methods=["GET", "POST"])
+def payLoan():
+    if request.method == "POST":
+        username = request.form["username"]
+        amount = request.form["amount"]
+
+        loan = Loan.query.filter_by(username=username).first()
+        loan.isPaid = True
+
+        total = Total.query.filter_by(id=1).first()
+        total.amount = total.amount + int(amount)
+
+    return render_template("payLoan.html")
